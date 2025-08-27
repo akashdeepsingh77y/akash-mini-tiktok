@@ -1,0 +1,10 @@
+{
+  "name": "akash-mini-tiktok-api",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@azure/cosmos": "^4.2.0",
+    "@azure/storage-blob": "^12.17.0",
+    "uuid": "^9.0.1"
+  }
+}
