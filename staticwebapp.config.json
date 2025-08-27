@@ -1,0 +1,9 @@
+{
+  "routes": [
+    { "route": "/upload", "allowedRoles": ["authenticated", "creator"] }
+  ],
+  "responseOverrides": {
+    "401": { "statusCode": 302, "redirect": "/.auth/login/github" }
+  },
+  "navigationFallback": { "rewrite": "/index.html" }
+}
