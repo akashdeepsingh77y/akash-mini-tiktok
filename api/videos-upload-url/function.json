@@ -5,8 +5,7 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": [ "post" ],
-      "route": "videos-upload-url"
+      "methods": ["post"]
     },
     {
       "type": "http",
