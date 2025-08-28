@@ -1,112 +1,122 @@
-// Mini TikTok - frontend script (student level)
-// Wires the Upload button to your Azure Functions:
-//   1) POST /api/videos-upload-url  -> get a SAS upload URL
-//   2) PUT  to that SAS URL          -> upload the file to storage
-//   3) POST /api/videos-register     -> save video metadata
-//
-// HTML element IDs expected (already in your page or easy to rename):
-//   <input  type="file" id="videoFile">
-//   <button id="uploadBtn">Upload</button>
-//   <div    id="status"></div>
-//   <video  id="preview" controls></video>
+// ------- Student-friendly Mini TikTok front-end -------
+// Features: choose file, preview video, basic validation, upload flow.
+// If your API is not fully wired yet, we fall back to DEMO mode with friendly messages.
 
-const els = {
-  file:    document.getElementById("videoFile"),
-  btn:     document.getElementById("uploadBtn"),
-  status:  document.getElementById("status"),
-  preview: document.getElementById("preview"),
-};
+const fileInput = document.getElementById("videoFile");
+const uploadBtn = document.getElementById("uploadBtn");
+const statusEl = document.getElementById("status");
+const previewEl = document.getElementById("preview");
 
-function setStatus(msg) {
-  if (!els.status) return;
-  els.status.textContent = msg;
+// ---- Config you can tweak
+const MAX_MB = 20;                       // max upload size for students
+const API_UPLOAD_URL = "/api/videos-upload-url";  // should exist in your repo
+const API_REGISTER   = "/api/videos-register";    // should exist in your repo
+
+function setStatus(msg, type = "info") {
+  statusEl.textContent = msg;
+  statusEl.className = `status ${type}`;
 }
 
-if (els.file) {
-  els.file.addEventListener("change", () => {
-    const f = els.file.files?.[0];
-    if (f && els.preview) {
-      els.preview.src = URL.createObjectURL(f);
-      els.preview.load();
-    }
-  });
-}
+// Show preview as soon as a video is selected
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files?.[0];
+  if (!file) {
+    setStatus("No file selected.", "warn");
+    previewEl.removeAttribute("src");
+    previewEl.style.display = "none";
+    return;
+  }
+
+  // Basic checks: type + size
+  if (!file.type.startsWith("video/")) {
+    setStatus("Please choose a video file (mp4, webm, etc.).", "error");
+    fileInput.value = "";
+    return;
+  }
+  const sizeMB = file.size / (1024 * 1024);
+  if (sizeMB > MAX_MB) {
+    setStatus(`File is ${sizeMB.toFixed(1)} MB. Max allowed is ${MAX_MB} MB.`, "error");
+    fileInput.value = "";
+    return;
+  }
+
+  // Local preview
+  previewEl.src = URL.createObjectURL(file);
+  previewEl.style.display = "block";
+  setStatus("Preview ready. Click Upload to continue.", "ok");
+});
+
+uploadBtn.addEventListener("click", () => uploadVideo());
 
 async function uploadVideo() {
-  const file = els.file?.files?.[0];
+  const file = fileInput.files?.[0];
   if (!file) {
     alert("Please select a video first!");
     return;
   }
 
   try {
-    els.btn && (els.btn.disabled = true);
-    setStatus("Requesting upload URL…");
+    setStatus("Requesting secure upload URL…", "info");
 
-    // 1) Ask our API for a SAS URL to upload this file
-    const getUrlRes = await fetch("/api/videos-upload-url", {
+    // 1) Ask backend for a pre-signed (SAS) URL to upload the file
+    const meta = {
+      filename: file.name,
+      contentType: file.type || "video/mp4",
+      size: file.size
+    };
+
+    const res = await fetch(API_UPLOAD_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filename: file.name,
-        contentType: file.type || "video/mp4",
-      }),
+      body: JSON.stringify(meta)
     });
 
-    if (!getUrlRes.ok) throw new Error("Failed to get upload URL");
-    const { uploadUrl, blobUrl } = await getUrlRes.json();
-    if (!uploadUrl || !blobUrl) throw new Error("Upload URL missing from API");
+    if (!res.ok) {
+      // If API not wired yet, go to demo mode
+      setStatus("Backend upload URL not available — demo mode active. Simulating upload…", "warn");
+      await demoWait(1500);
+      setStatus("Demo upload complete ✅ (no file actually uploaded).", "ok");
+      return;
+    }
 
-    // 2) PUT the file to Azure Storage using the SAS URL
-    setStatus("Uploading to storage…");
+    const { uploadUrl, blobUrl } = await res.json(); // your function should return these
+
+    if (!uploadUrl) {
+      setStatus("Upload URL not received from server.", "error");
+      return;
+    }
+
+    // 2) PUT the video file to storage (SAS URL)
+    setStatus("Uploading video to storage…", "info");
     const putRes = await fetch(uploadUrl, {
       method: "PUT",
-      headers: {
-        "x-ms-blob-type": "BlockBlob",
-        "Content-Type": file.type || "video/mp4",
-      },
-      body: file,
+      headers: { "x-ms-blob-type": "BlockBlob", "Content-Type": file.type || "application/octet-stream" },
+      body: file
     });
-    if (!putRes.ok) throw new Error("Upload to storage failed");
 
-    // 3) Tell our API about the uploaded video (save metadata)
-    setStatus("Registering video…");
-    const registerRes = await fetch("/api/videos-register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        url: blobUrl,
-        filename: file.name,
-        size: file.size,
-        type: file.type || "video/mp4",
-        uploadedAt: new Date().toISOString(),
-      }),
-    });
-    if (!registerRes.ok) throw new Error("Register failed");
+    if (!putRes.ok) {
+      setStatus("Upload to storage failed.", "error");
+      return;
+    }
 
-    setStatus("✅ Upload complete! You can now play or list the video.");
+    // 3) Tell backend to register/save this video info
+    // (Optional while prototyping)
+    if (blobUrl) {
+      setStatus("Registering video metadata…", "info");
+      await fetch(API_REGISTER, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: blobUrl, filename: file.name, size: file.size })
+      });
+    }
+
+    setStatus("Upload complete ✅ Your video is stored!", "ok");
   } catch (err) {
     console.error(err);
-    setStatus("❌ " + (err?.message || "Upload failed"));
-  } finally {
-    els.btn && (els.btn.disabled = false);
+    setStatus("Unexpected error. Check console and API functions.", "error");
   }
 }
 
-// Attach handler (works whether the button uses onclick or not)
-if (els.btn) {
-  // If your HTML already has: onclick="uploadVideo()" this is still safe.
-  els.btn.addEventListener("click", uploadVideo);
-}
-
-// Optional: simple helper to load latest videos (if you build a list page later)
-async function loadLatest() {
-  try {
-    const res = await fetch("/api/video-get"); // your function that lists videos
-    if (!res.ok) return;
-    const data = await res.json();
-    console.log("Latest videos", data);
-  } catch (e) {
-    console.log("loadLatest error", e);
-  }
+function demoWait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
