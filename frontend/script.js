@@ -1,41 +1,46 @@
-// --- Mini TikTok frontend script ---
-async function fetchVideos() {
-  const container = document.getElementById("feed");
-  container.innerHTML = "<p>Loading videos...</p>";
+// Upload video preview
+function uploadVideo() {
+  const fileInput = document.getElementById("videoUpload");
+  const videoPlayer = document.getElementById("videoPlayer");
 
-  try {
-    const res = await fetch("/api/video-get");
-    const videos = await res.json();
-
-    container.innerHTML = "";
-    videos.forEach(v => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <h3>${v.title}</h3>
-        <video src="${v.url}" controls></video>
-        <p class="small">Uploader: ${v.userId}</p>
-      `;
-      container.appendChild(card);
-    });
-  } catch (err) {
-    container.innerHTML = "<p>Error loading videos.</p>";
-    console.error(err);
+  if (fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    videoPlayer.src = URL.createObjectURL(file);
+    alert("Video uploaded successfully!");
+  } else {
+    alert("Please select a video first.");
   }
 }
 
-// Upload new video (basic demo)
-async function uploadVideo() {
-  const fileInput = document.getElementById("videoFile");
-  const titleInput = document.getElementById("videoTitle");
+// Ratings
+let likes = 0, dislikes = 0;
 
-  if (!fileInput.files[0] || !titleInput.value) {
-    alert("Please select a file and enter a title.");
-    return;
-  }
-
-  alert("In real app: file would be uploaded to /api/videos-upload-url");
+function addLike() {
+  likes++;
+  updateRating();
 }
 
-// Load videos on page start
-window.onload = fetchVideos;
+function addDislike() {
+  dislikes++;
+  updateRating();
+}
+
+function updateRating() {
+  document.getElementById("ratingBox").innerText = `👍 ${likes} | 👎 ${dislikes}`;
+}
+
+// Comments
+function postComment() {
+  const commentBox = document.getElementById("commentBox");
+  const commentsList = document.getElementById("commentsList");
+
+  if (commentBox.value.trim() !== "") {
+    const p = document.createElement("p");
+    p.innerText = commentBox.value;
+    commentsList.appendChild(p);
+    commentBox.value = "";
+  } else {
+    alert("Comment cannot be empty!");
+  }
+}
+
