@@ -1,54 +1,34 @@
-// Azure Function: videos-upload-url
-// Returns a SAS URL so frontend can upload video directly to Blob Storage
-
 const { BlobServiceClient } = require("@azure/storage-blob");
+const { v4: uuidv4 } = require("uuid");
 
 module.exports = async function (context, req) {
   try {
     const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-
     if (!AZURE_STORAGE_CONNECTION_STRING) {
-      context.res = {
-        status: 500,
-        body: { error: "Storage connection not configured." }
-      };
-      return;
+      throw new Error("Storage connection string not configured.");
     }
 
-    const blobServiceClient = BlobServiceClient.fromConnectionString(
-      AZURE_STORAGE_CONNECTION_STRING
-    );
+    // Create blob service client
+    const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 
-    const containerName = "videos"; // your container name
-    const containerClient = blobServiceClient.getContainerClient(containerName);
-    await containerClient.createIfNotExists();
+    // Use container 'videos'
+    const containerClient = blobServiceClient.getContainerClient("videos");
 
-    const { filename, contentType } = req.body;
-    const blobName = Date.now() + "-" + (filename || "video.mp4");
+    // Generate unique blob name
+    const blobName = uuidv4() + ".mp4";
 
-    // Get SAS URL valid for 5 minutes
-    const ONE_MINUTE = 60 * 1000;
-    const expiry = new Date(new Date().valueOf() + 5 * ONE_MINUTE);
-
-    const blobClient = containerClient.getBlockBlobClient(blobName);
-    const sasUrl = await blobClient.generateSasUrl({
-      permissions: "cw", // create, write
-      expiresOn: expiry,
-      contentType: contentType || "video/mp4"
-    });
+    // Get SAS URL for upload
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    const sasUrl = `${blockBlobClient.url}?${containerClient.generateSasUrl}`;
 
     context.res = {
       status: 200,
-      body: {
-        uploadUrl: sasUrl,
-        blobUrl: blobClient.url
-      }
+      body: { uploadUrl: blockBlobClient.url, blobName }
     };
   } catch (err) {
-    context.log.error("Error generating SAS URL:", err.message);
     context.res = {
       status: 500,
-      body: { error: "Failed to generate upload URL." }
+      body: { error: err.message }
     };
   }
 };
