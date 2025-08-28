@@ -2,29 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mini TikTok</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Akash Mini TikTok</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>🎵 Mini TikTok</header>
+  <header>
+    🎵 Akash Mini TikTok 🎥
+  </header>
 
   <div class="container">
-    <div class="card">
-      <h3>Upload a video</h3>
-      <div class="row">
-        <input type="text" id="videoTitle" placeholder="Video title">
-        <input type="file" id="videoFile" accept="video/*">
-        <button onclick="uploadVideo()">Upload</button>
-      </div>
-      <div class="helper">Demo upload button (wired to API later)</div>
-    </div>
+    <h2>Upload Your Video</h2>
+    <input type="file" id="videoUpload" accept="video/*">
+    <button onclick="uploadVideo()">Upload Video</button>
 
-    <div class="card">
-      <h3>Video Feed</h3>
-      <div id="feed" class="feed"></div>
-    </div>
+    <h2>Preview</h2>
+    <video id="videoPlayer" controls></video>
+
+    <h2>Rate & Comment</h2>
+    <button onclick="addLike()">👍 Like</button>
+    <button onclick="addDislike()">👎 Dislike</button>
+
+    <div id="ratingBox"></div>
+
+    <textarea id="commentBox" placeholder="Write a comment..."></textarea>
+    <button onclick="postComment()">Post Comment</button>
+    <div id="commentsList"></div>
   </div>
+
+  <footer>
+    <p>© 2025 Akash Mini TikTok | Built for Learning</p>
+  </footer>
 
   <script src="script.js"></script>
 </body>
 </html>
+
