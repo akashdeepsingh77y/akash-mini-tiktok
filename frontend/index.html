@@ -1,19 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mini TikTok</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="script.js" defer></script>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>🎵 Mini TikTok</header>
+
   <main class="container">
     <h1>Upload a Video</h1>
-    <input type="file" id="videoInput" accept="video/*" placeholder="Video file">
-    <button onclick="uploadVideo()">Upload</button>
-    <div class="helper">Demo upload button (wired to API later)</div>
+
+    <!-- File chooser -->
+    <input type="file" id="videoFile" accept="video/*" placeholder="Video file" />
+
+    <!-- Upload button -->
+    <button id="uploadBtn" type="button">Upload</button>
+
+    <!-- Status line for messages -->
+    <div id="status" class="status"></div>
+
+    <!-- Preview player -->
+    <video id="preview" class="preview" controls></video>
+
+    <div class="helper">Demo upload button — wired to backend APIs when available.</div>
   </main>
+
+  <footer>
+    <small>Student project • Azure Static Web App + Functions</small>
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>
